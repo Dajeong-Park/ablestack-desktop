@@ -7,22 +7,36 @@
             <!-- 오른쪽 경로 -->
             <a-col id="content-path" :span="12">
               <Apath
-                v-bind:paths="[
-                  { name: $t('label.workspace'), component: 'Workspaces' },
-                  { name: name, component: null },
+                :paths="[
+                  { name: $t('label.workspace'), component: 'Workspace' },
+                  { name: workspaceName, component: null },
                 ]"
               />
+              <a-button
+                shape="round"
+                style="margin-left: 20px; height: 30px"
+                @click="reflesh()"
+              >
+                <template #icon>
+                  <ReloadOutlined /> {{ $t("label.reflesh") }}
+                </template>
+              </a-button>
             </a-col>
-            <!-- 왼쪽 액션 -->
+            <!-- 우측 액션 -->
             <a-col id="content-action" :span="12">
-              <actions :actionFrom="actionFrom" />
+              <Actions
+                :action-from="actionFrom"
+                :workspace-uuid="workspaceUuid"
+              />
             </a-col>
           </a-row>
         </div>
       </a-layout-header>
       <a-layout-content>
         <div id="content-body">
-          <WorkSpaceBody :name="name" :info="info" />
+          <WorkSpaceBody
+            ref="listRefleshCall"
+          />
         </div>
       </a-layout-content>
     </a-layout>
@@ -34,16 +48,28 @@ import Actions from "@/components/Actions";
 import Apath from "@/components/Apath";
 import WorkSpaceBody from "@/views/workSpace/WorkSpaceBody";
 import { defineComponent, ref } from "vue";
+import { worksApi } from "@/api/index";
+import { message } from "ant-design-vue";
+
 export default defineComponent({
-  props: {
-    name: String,
-    info: Object,
-  },
   components: { Apath, Actions, WorkSpaceBody },
-  setup() {
+  props: {},
+  setup(props) {
     return {
       actionFrom: ref("WorkspaceDetail"),
     };
+  },
+  data() {
+    return {
+      workspaceUuid: ref(this.$route.params.workspaceUuid),
+      workspaceName: ref(this.$route.params.workspaceName),
+    };
+  },
+  created() {},
+  methods: {
+    reflesh() {
+      this.$refs.listRefleshCall.reflesh();
+    },
   },
 });
 </script>
