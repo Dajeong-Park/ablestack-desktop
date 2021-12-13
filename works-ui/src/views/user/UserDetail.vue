@@ -6,12 +6,7 @@
           <a-row>
             <!-- 오른쪽 경로 -->
             <a-col id="content-path" :span="12">
-              <Apath
-                :paths="[
-                  { name: $t('label.users'), component: 'Account' },
-                  { name: accountInfo.name, component: null },
-                ]"
-              />
+              <Apath :paths="[{ name: accountInfo.username, component: null }]" />
               <a-button
                 shape="round"
                 style="margin-left: 20px"
@@ -24,20 +19,16 @@
               </a-button>
             </a-col>
 
-            <!-- 왼쪽 액션 -->
+            <!-- 왼쪽 액션
             <a-col id="content-action" :span="12">
-              <Actions
-                v-if="actionFrom === 'AccountDetail'"
-                :action-from="actionFrom"
-                :account-info="accountInfo"
-              />
-            </a-col>
+              <Actions :action-from="actionFrom" />
+            </a-col> -->
           </a-row>
         </div>
       </a-layout-header>
       <a-layout-content>
         <div id="content-body">
-          <AccountBody ref="listRefreshCall" :account-info="accountInfo" />
+          <UserBody ref="listRefreshCall" :account-info="accountInfo" />
         </div>
       </a-layout-content>
     </a-layout>
@@ -47,13 +38,13 @@
 <script>
 import Actions from "../../components/Actions";
 import Apath from "../../components/Apath";
-import AccountBody from "./AccountBody";
+import UserBody from "./UserBody";
 import { defineComponent, ref } from "vue";
 import { worksApi } from "@/api/index";
 import { message } from "ant-design-vue";
 export default defineComponent({
   components: {
-    AccountBody,
+    UserBody,
     Apath,
     Actions,
   },
@@ -78,7 +69,7 @@ export default defineComponent({
     },
     async fetchData() {
       await worksApi
-        .get("/api/v1/user/" + this.$route.params.accountName)
+        .get("/api/v1/user/" + sessionStorage.getItem("username"))
         .then((response) => {
           if (response.status == 200) {
             this.accountInfo = response.data.result;
@@ -90,7 +81,7 @@ export default defineComponent({
           message.error(this.$t("message.response.data.fail"));
           console.log(error);
         });
-      this.actionFrom = "AccountDetail";
+      this.actionFrom = "UserDetail";
     },
   },
 });

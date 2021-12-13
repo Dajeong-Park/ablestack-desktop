@@ -21,14 +21,6 @@
       <div class="Item">{{ accountInfo.sn }}</div>
     </div>
     <div id="email" class="CardItem">
-      <div class="ItemName">{{ $t("label.title") }}</div>
-      <div class="Item">{{ accountInfo.title }}</div>
-    </div>
-    <div id="email" class="CardItem">
-      <div class="ItemName">{{ $t("label.department") }}</div>
-      <div class="Item">{{ accountInfo.department }}</div>
-    </div>
-    <div id="email" class="CardItem">
       <div class="ItemName">{{ $t("label.email") }}</div>
       <div class="Item">{{ accountInfo.mail }}</div>
     </div>
@@ -41,6 +33,8 @@
 
 <script>
 import { defineComponent, ref } from "vue";
+import { worksApi } from "@/api/index";
+import { message } from "ant-design-vue";
 
 export default defineComponent({
   components: {},

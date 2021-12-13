@@ -2,16 +2,11 @@
   <div id="content-layout">
     <a-layout>
       <a-layout-header id="content-header">
-        <div>
-          <a-row>
+        <div id="content-header-body">
+          <a-row id="content-header-row">
             <!-- 오른쪽 경로 -->
             <a-col id="content-path" :span="12">
-              <Apath
-                :paths="[
-                  { name: $t('label.users'), component: 'Account' },
-                  { name: accountInfo.name, component: null },
-                ]"
-              />
+              <Apath :paths="[$t('label.configuration')]" />
               <a-button
                 shape="round"
                 style="margin-left: 20px"
@@ -26,18 +21,17 @@
 
             <!-- 왼쪽 액션 -->
             <a-col id="content-action" :span="12">
-              <Actions
-                v-if="actionFrom === 'AccountDetail'"
-                :action-from="actionFrom"
-                :account-info="accountInfo"
-              />
+              <div></div>
             </a-col>
           </a-row>
         </div>
       </a-layout-header>
       <a-layout-content>
         <div id="content-body">
-          <AccountBody ref="listRefreshCall" :account-info="accountInfo" />
+          <ConfigurationList
+            ref="listRefreshCall"
+            @actionFromChange="actionFromChange"
+          />
         </div>
       </a-layout-content>
     </a-layout>
@@ -45,52 +39,34 @@
 </template>
 
 <script>
-import Actions from "../../components/Actions";
-import Apath from "../../components/Apath";
-import AccountBody from "./AccountBody";
-import { defineComponent, ref } from "vue";
+import Actions from "@/components/Actions";
+import Apath from "@/components/Apath";
+import ConfigurationList from "@/views/configuration/ConfigurationList";
+import { defineComponent, ref, reactive } from "vue";
 import { worksApi } from "@/api/index";
 import { message } from "ant-design-vue";
+
 export default defineComponent({
   components: {
-    AccountBody,
+    ConfigurationList,
     Apath,
     Actions,
   },
   props: {},
   setup() {
-    return {
-      actionFrom: ref(""),
-    };
+    return {};
   },
   data() {
-    return {
-      accountInfo: ref([]),
-    };
+    return {};
   },
-  created() {
-    this.fetchData();
-  },
+  created() {},
   methods: {
     refresh() {
-      this.fetchData();
-      this.$refs.listRefreshCall.fetchRefresh();
+      this.$refs.listRefreshCall.fetchData();
     },
-    async fetchData() {
-      await worksApi
-        .get("/api/v1/user/" + this.$route.params.accountName)
-        .then((response) => {
-          if (response.status == 200) {
-            this.accountInfo = response.data.result;
-          } else {
-            message.error(this.$t("message.response.data.fail"));
-          }
-        })
-        .catch((error) => {
-          message.error(this.$t("message.response.data.fail"));
-          console.log(error);
-        });
-      this.actionFrom = "AccountDetail";
+    actionFromChange(val) {
+      //console.log(val);
+      this.actionFrom = ref(val);
     },
   },
 });

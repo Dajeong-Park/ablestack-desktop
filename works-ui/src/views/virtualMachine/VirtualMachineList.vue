@@ -11,6 +11,10 @@
     :bordered="bordered ? bordered : false"
     style="overflow-y: auto; overflow: auto"
     :pagination="pagination"
+    :row-selection="{
+      selectedRowKeys: state.selectedRowKeys,
+      onChange: onSelectChange,
+    }"
   >
     <!-- 검색 필터링 template-->
     <template
@@ -46,18 +50,30 @@
     <!-- 검색 필터링 template-->
 
     <template #nameRender="{ record }">
-      <router-link :to="{ path: '/virtualMachineDetail/' + record.uuid +'/' + record.name}">{{
-        record.name
-      }}</router-link>
+      <router-link
+        :to="{
+          path: '/virtualMachineDetail/' + record.uuid,
+        }"
+        >{{ record.name }}</router-link
+      >
+    </template>
+    <template #workspaceRender="{ record }">
+      <router-link
+        :to="{
+          path: '/workspaceDetail/' + record.workspace_uuid,
+        }"
+        >{{ record.workspace_name }}</router-link
+      >
     </template>
 
     <template #actionRender="{ record }">
       <a-Popover placement="topLeft">
         <template #content>
           <Actions
+            v-if="actionFrom === 'VirtualMachineList'"
             :action-from="actionFrom"
-            :vm-uuid="record.uuid"
-            @fetchData="fetchData"
+            :vm-info="record"
+            @fetchData="fetchRefresh"
           />
         </template>
         <MoreOutlined />
@@ -66,32 +82,70 @@
     <template #vmStateRender="{ record }">
       <a-badge
         class="head-example"
-        :color="record.mold_status === 'Running' ? 'green' : 'red'"
+        :color="
+          record.mold_status === 'Running'
+            ? 'green'
+            : record.mold_status === 'Stopping' ||
+              record.mold_status === 'Starting'
+            ? 'blue'
+            : record.mold_status === 'Stopped'
+            ? 'red'
+            : ''
+        "
         :text="
           record.mold_status === 'Running'
             ? $t('label.vm.status.running')
-            : $t('label.vm.status.stopped')
+            : record.mold_status === 'Starting'
+            ? $t('label.vm.status.starting')
+            : record.mold_status === 'Stopping'
+            ? $t('label.vm.status.stopping')
+            : record.mold_status === 'Stopped'
+            ? $t('label.vm.status.stopped')
+            : ''
         "
       />
     </template>
     <template #vmReadyStateRender="{ record }">
-      <a-badge
-        class="head-example"
-        :color="record.mold_status == 'Running' && record.checked === true ? 'green' : 'red'"
-        :text="
-          record.mold_status == 'Running' && record.checked === true
-            ? $t('label.vm.status.ready')
-            : $t('label.vm.status.notready')
-        "
-      />
+      <a-tooltip placement="bottom">
+        <template #title>{{ record.handshake_status }}</template>
+        <a-badge
+          class="head-example"
+          :color="
+            record.handshake_status === 'Not Ready' ||
+            record.handshake_status === 'Pending'
+              ? 'red'
+              : record.handshake_status === 'Joining' ||
+                record.handshake_status === 'Joined'
+              ? 'yellow'
+              : record.handshake_status === 'Ready'
+              ? 'green'
+              : 'red'
+          "
+          :text="
+            record.handshake_status === 'Not Ready' ||
+            record.handshake_status === 'Pending'
+              ? $t('label.vm.status.initializing') +
+                '(' +
+                record.handshake_status +
+                ')'
+              : record.handshake_status === 'Joining' ||
+                record.handshake_status === 'Joined'
+              ? $t('label.vm.status.configuring') +
+                '(' +
+                record.handshake_status +
+                ')'
+              : record.handshake_status === 'Ready'
+              ? $t('label.vm.status.ready')
+              : $t('label.vm.status.notready')
+          "
+        />
+      </a-tooltip>
     </template>
     <template #userRender="{ record }">
-      <!-- {{
-        record.owner_account_id === ""
-          ? $t("label.owner.account.false")
-          : record.owner_account_id
-      }} -->
-      {{ record.owner_account_id }}
+      <router-link
+        :to="{ path: '/accountDetail/' + record.owner_account_id }"
+        >{{ record.owner_account_id }}</router-link
+      >
     </template>
     <template #sessionRender="{ record }">
       {{ record.connected }}
@@ -114,6 +168,8 @@ export default defineComponent({
     const state = reactive({
       searchText: "",
       searchedColumn: "",
+      selectedRowKeys: [],
+      selectedRows: [],
     });
     const searchInput = ref();
     const handleSearch = (selectedKeys, confirm, dataIndex) => {
@@ -127,16 +183,8 @@ export default defineComponent({
       state.searchText = "";
     };
     return {
-      // rowSelection,
       loading: ref(false),
-      actionFrom: ref("VirtualMachineList"),
-      pagination: {
-        pageSize: 10,
-        showSizeChanger: true, // display can change the number of pages per page
-        pageSizeOptions: ["10", "20", "50", "100"], // number of pages per option
-        showTotal: (total) => `Total ${total} items`, // show total
-        showSizeChange: (current, pageSize) => (this.pageSize = pageSize), // update display when changing the number of pages per page
-      },
+      actionFrom: ref(""),
       searchInput,
       state,
       handleSearch,
@@ -146,14 +194,21 @@ export default defineComponent({
   data() {
     return {
       timer: ref(null),
-      selectedRowKeys: [],
+      pagination: {
+        pageSize: 10,
+        showSizeChanger: true, // display can change the number of pages per page
+        pageSizeOptions: ["10", "20", "50", "100", "200"], // number of pages per option
+        showTotal: (total) =>
+          this.$t("label.total") + ` ${total}` + this.$t("label.items"), // show total
+        showSizeChange: (current, pageSize) => (this.pageSize = pageSize), // update display when changing the number of pages per page
+      },
       vmDataList: [],
       vmListColumns: [
         {
           title: this.$t("label.name"),
           dataIndex: "name",
           key: "name",
-          width: "20%",
+          width: "22%",
           slots: {
             customRender: "nameRender",
             filterDropdown: "filterDropdown",
@@ -184,7 +239,7 @@ export default defineComponent({
           title: this.$t("label.workspace"),
           dataIndex: "workspace_name",
           key: "workspace_name",
-          width: "20%",
+          width: "15%",
           sorter: (a, b) =>
             a.workspace_name < b.workspace_name
               ? -1
@@ -193,6 +248,7 @@ export default defineComponent({
               : 0,
           sortDirections: ["descend", "ascend"],
           ellipsis: true,
+          slots: { customRender: "workspaceRender" },
         },
         {
           title: this.$t("label.users"),
@@ -220,13 +276,26 @@ export default defineComponent({
         },
         {
           title: this.$t("label.vm.ready.state"),
-          dataIndex: "status",
-          key: "status",
-          width: "10%",
+          dataIndex: "handshake_status",
+          key: "handshake_status",
+          width: "20%",
           sorter: (a, b) =>
-            a.status < b.status ? -1 : a.status > b.status ? 1 : 0,
+            a.handshake_status < b.handshake_status
+              ? -1
+              : a.handshake_status > b.handshake_status
+              ? 1
+              : 0,
           sortDirections: ["descend", "ascend"],
           slots: { customRender: "vmReadyStateRender" },
+        },
+        {
+          title: this.$t("label.vm.network.ip"),
+          dataIndex: "ipaddress",
+          key: "ipaddress",
+          width: "15%",
+          sorter: (a, b) =>
+            a.ipaddress < b.ipaddress ? -1 : a.ipaddress > b.ipaddress ? 1 : 0,
+          sortDirections: ["descend", "ascend"],
         },
         {
           title: this.$t("label.vm.session.count"),
@@ -242,48 +311,61 @@ export default defineComponent({
     };
   },
   created() {
-    this.fetchData();
+    this.fetchRefresh();
     this.timer = setInterval(() => {
-      //10초 자동 갱신
+      //60초 자동 갱신
       this.fetchData();
-    }, 15000);
+    }, 30000);
   },
   beforeUnmount() {
     clearInterval(this.timer);
   },
   methods: {
-    setSelection(selection) {
-      this.selectedRowKeys = selection;
-      if (this.selectedRowKeys.length == 0) {
-        this.$emit("actionFromChange", "VirtualMachine");
-      } else {
-        this.$emit("actionFromChange", this.actionFrom);
-      }
-    },
-    resetSelection() {
-      this.setSelection([]);
+    fetchRefresh() {
+      this.$emit("actionFromChange", "VirtualMachine", null);
+      this.loading = true;
+      this.actionFrom = "";
+      this.state.selectedRowKeys = [];
+      this.state.searchText = "";
+      this.fetchData();
     },
     onSelectChange(selectedRowKeys, selectedRows) {
-      this.setSelection(selectedRowKeys);
+      this.state.selectedRowKeys = selectedRowKeys;
+      this.state.selectedRows = selectedRows;
+      if (this.state.selectedRows.length > 0) {
+        this.$emit(
+          "actionFromChange",
+          "VirtualMachineList",
+          this.state.selectedRows
+        );
+      } else {
+        this.$emit("actionFromChange", "VirtualMachine", null);
+      }
     },
-    fetchData(val) {
-      this.loading = true;
-      worksApi
+    async fetchData() {
+      await worksApi
         .get("/api/v1/instance/all")
         .then((response) => {
           if (response.status == 200) {
-            this.vmDataList = response.data.result.instanceInfo;
+            if (response.data.result.instanceInfo !== null) {
+              this.vmDataList = response.data.result.instanceInfo;
+              this.vmDataList.forEach((value, index, array) => {
+                this.vmDataList[index].key = index;
+              });
+            }
           } else {
             message.error(this.$t("message.response.data.fail"));
           }
         })
-        .catch(function (error) {
-          message.error(error);
-          //console.log(error);
+        .catch((error) => {
+          message.error(this.$t("message.response.data.fail"));
+          console.log(error);
+        })
+        .finally(() => {
+          this.loading = false;
         });
-      setTimeout(() => {
-        this.loading = false;
-      }, 500);
+
+      this.actionFrom = "VirtualMachineList";
     },
   },
 });
