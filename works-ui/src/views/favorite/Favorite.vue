@@ -333,6 +333,7 @@
 import { defineComponent, ref } from "vue";
 import Apath from "@/components/Apath";
 import Actions from "@/components/Actions";
+import router from "@/router";
 
 export default defineComponent({
   name: "UserDesktop",
@@ -658,6 +659,7 @@ export default defineComponent({
     },
     connectConsole(uuid, bool) {
       console.log(uuid + " :: " + bool);
+      router.push({ name : 'GuacClient' });
     },
     vmState(uuid, bool) {
       console.log(uuid + " :: " + bool);

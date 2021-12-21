@@ -1,0 +1,15 @@
+{
+    "connection": {
+        "type": "rdp",
+        "settings": {
+            "hostname": "10.1.1.124",
+            "username": "djpark",
+            "password": "Ablecloud1!",
+            "domain": "djpark",
+            "ignore-cert": true,
+            "width": 1920,
+            "height": 976,
+            "dpi": 96
+        }
+    }
+}
