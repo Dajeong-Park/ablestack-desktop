@@ -14,11 +14,10 @@ import GroupPolicy from "../views/groupPolicy/GroupPolicy.vue";
 import GroupPolicyDetail from "../views/groupPolicy/GroupPolicyDetail.vue";
 import UserDetail from "../views/user/UserDetail.vue";
 import UserDesktop from "../views/userDesktop/UserDesktop.vue";
-import GuacClient from "../views/guac/GuacClient.vue";
 import VirtualMachine from "../views/virtualMachine/VirtualMachine.vue";
 import VirtualMachineDetail from "../views/virtualMachine/VirtualMachineDetail.vue";
-import Workspace from "../views/workSpace/WorkSpace.vue";
-import WorkspaceDetail from "../views/workSpace/WorkSpaceDetail.vue";
+import Workspace from "../views/workspace/WorkSpace.vue";
+import WorkspaceDetail from "../views/workspace/WorkSpaceDetail.vue";
 
 // import Audit from "../views/audit/Audit.vue";
 // import AuditDetail from "../views/audit/AuditDetail.vue";
@@ -274,12 +273,6 @@ const routes = [
         component: UserDetail,
         beforeEnter: userAuthCheck,
       },
-      {
-        path: "/guacClient",
-        name: "GuacClient",
-        component: GuacClient,
-        beforeEnter: userAuthCheck,
-      }
     ],
   },
 ];
