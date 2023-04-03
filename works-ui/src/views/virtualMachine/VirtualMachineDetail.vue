@@ -7,26 +7,29 @@
             <!-- 왼쪽 경로 -->
             <a-col id="content-path" :span="12">
               <Apath
+                v-if="resource.instanceDBInfo"
                 :paths="[
                   { name: $t('label.vm'), component: 'VirtualMachine' },
-                  { name: vmName, component: null },
+                  { name: resource.instanceDBInfo.name, component: null },
                 ]"
               />
               <a-button
                 shape="round"
-                style="margin-left: 20px; height: 30px"
-                @click="reflesh()"
+                style="margin-left: 20px"
+                size="small"
+                @click="refresh()"
               >
-                <template #icon>
-                  <ReloadOutlined /> {{ $t("label.reflesh") }}
-                </template>
+                <template #icon><ReloadOutlined /></template>
+                {{ $t("label.refresh") }}
               </a-button>
             </a-col>
             <!-- 우측 액션 -->
             <a-col id="content-action" :span="12">
               <Actions
+                v-if="actionFrom"
                 :action-from="actionFrom"
-                @fetchData="reflesh"
+                :vm-info="resource.instanceDBInfo"
+                @fetchData="refresh"
               />
             </a-col>
           </a-row>
@@ -34,7 +37,11 @@
       </a-layout-header>
       <a-layout-content>
         <div id="content-body">
-          <VirtualMachineBody ref="listRefleshCall"/>
+          <VirtualMachineBody
+            v-if="resource.instanceDBInfo"
+            ref="listRefreshCall"
+            :resource="resource"
+          />
         </div>
       </a-layout-content>
     </a-layout>
@@ -46,30 +53,45 @@ import Actions from "@/components/Actions";
 import Apath from "@/components/Apath";
 import VirtualMachineBody from "./VirtualMachineBody.vue";
 import { defineComponent, ref } from "vue";
-import { worksApi } from "@/api/index";
-import { message } from "ant-design-vue";
-
 export default defineComponent({
   components: { VirtualMachineBody, Apath, Actions },
   props: {},
   setup() {
     return {
-      vmDbDataInfo: ref([]),
-      vmMoldDataInfo: ref([]),
-      actionFrom: ref("VirtualMachineDetail"),
+      actionFrom: ref(""),
     };
   },
   data() {
     return {
-      vmUuid: ref(this.$route.params.vmUuid),
-      vmName: ref(this.$route.params.vmName),
+      resource: ref([]),
     };
   },
   created() {
+    this.fetchData();
   },
   methods: {
-    reflesh() {
-      this.$refs.listRefleshCall.reflesh();
+    refresh() {
+      this.fetchData();
+      this.$refs.listRefreshCall.fetchRefresh();
+    },
+    async fetchData() {
+      this.actionFrom = "";
+      try {
+        const response = await this.$worksApi.get(
+          "/api/v1/instance/detail/" + this.$route.params.vmUuid
+        );
+
+        if (response.status === 200) {
+          //console.log(response.data.result.instanceDBInfo);
+          this.resource = response.data.result;
+        } else {
+          this.$message.error(this.$t("message.response.data.fail"));
+        }
+      } catch (error) {
+        console.log(error);
+        this.$message.error(this.$t("message.response.data.fail"));
+      }
+      this.actionFrom = "VMDetail";
     },
   },
 });
@@ -88,7 +110,7 @@ export default defineComponent({
   /*color: #fff;*/
   font-size: 14px;
   line-height: 1.5;
-  padding: 24px;
+  padding: 20px;
   height: auto;
 }
 
@@ -96,6 +118,7 @@ export default defineComponent({
   text-align: left;
   align-items: center;
   display: flex;
+  height: 32px;
 }
 
 #content-action {

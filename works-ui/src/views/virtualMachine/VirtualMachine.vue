@@ -9,20 +9,22 @@
               <Apath :paths="[$t('label.vm')]" />
               <a-button
                 shape="round"
-                style="margin-left: 20px; height: 30px"
-                @click="reflesh()"
+                style="margin-left: 20px"
+                size="small"
+                @click="refresh()"
               >
-                <template #icon>
-                  <ReloadOutlined /> {{ $t("label.reflesh") }}
-                </template>
+                <template #icon><ReloadOutlined /></template>
+                {{ $t("label.refresh") }}
               </a-button>
             </a-col>
 
             <!-- 우측 액션 -->
             <a-col id="content-action" :span="12">
-              <actions
-                v-if="actionFrom === 'VirtualMachineList'"
+              <Actions
+                v-if="actionFrom === 'VMList'"
                 :action-from="actionFrom"
+                :multi-select-list="multiSelectList"
+                @fetchData="refresh"
               />
             </a-col>
           </a-row>
@@ -31,7 +33,7 @@
       <a-layout-content>
         <div id="content-body">
           <VirtualMachineList
-            ref="listRefleshCall"
+            ref="listRefreshCall"
             @actionFromChange="actionFromChange"
           />
         </div>
@@ -47,7 +49,7 @@ import { defineComponent, ref } from "vue";
 import VirtualMachineList from "./VirtualMachineList";
 
 export default defineComponent({
-  name: "VirtualMachine",
+  name: "VM",
   components: {
     VirtualMachineList,
     Apath,
@@ -56,16 +58,20 @@ export default defineComponent({
   props: {},
   data() {
     return {
-      actionFrom: ref("VirtualMachine"),
+      actionFrom: ref("VM"),
+      multiSelectList: ref([]),
     };
   },
   methods: {
-    reflesh() {
-      this.$refs.listRefleshCall.fetchData();
+    refresh() {
+      this.$refs.listRefreshCall.fetchRefresh();
     },
-    actionFromChange(val) {
-      //console.log(val);
-      this.actionFrom = ref(val);
+    actionFromChange(val, obj) {
+      this.actionFrom = "VM";
+      setTimeout(() => {
+        this.actionFrom = val;
+        this.multiSelectList = obj;
+      }, 100);
     },
   },
 });
@@ -84,7 +90,7 @@ export default defineComponent({
   /*color: #fff;*/
   font-size: 14px;
   line-height: 1.5;
-  padding: 24px;
+  padding: 20px;
   height: auto;
 }
 
@@ -92,6 +98,7 @@ export default defineComponent({
   text-align: left;
   align-items: center;
   display: flex;
+  height: 32px;
 }
 
 #content-action {

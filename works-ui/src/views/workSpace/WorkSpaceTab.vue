@@ -1,29 +1,77 @@
 <template>
   <div id="ContentTab">
     <a-tabs v-model:activeKey="activeKey" :tab-position="tabPosition">
-      <a-tab-pane key="1" :tab="$t('label.vm.list')">
+      <a-tab-pane
+        key="1"
+        :tab="$t('label.desktop.vm.list')"
+        :forceRender="forceRender"
+      >
         <TableContent
-          ref="listRefleshCall1"
+          ref="listRefreshCall1"
           :tap-name="'desktop'"
-          :action-from="'VirtualMachineList'"
+          :action-from="'VMList'"
+          :resource="resource"
+          @parentRefresh="parentRefresh"
         />
       </a-tab-pane>
-      <a-tab-pane key="2" :tab="$t('label.users')">
+      <a-tab-pane key="2" :tab="$t('label.users')" :forceRender="forceRender">
         <TableContent
-          ref="listRefleshCall2"
+          ref="listRefreshCall2"
           :tap-name="'user'"
-          :action-from="'UserDetail'"
+          :action-from="'WSUserList'"
+          :resource="resource"
+          @parentRefresh="parentRefresh"
         />
       </a-tab-pane>
-      <a-tab-pane key="3" :tab="$t('label.policy.list')">
-        <TableContent
-          ref="listRefleshCall3"
+      <a-tab-pane
+        key="3"
+        :tab="$t('label.policy.list')"
+        :forceRender="forceRender"
+      >
+        <a-tabs v-model:activeKey="policyActiveKey" type="card">
+          <a-tab-pane
+            key="1"
+            :tab="$t('label.group.policy')"
+            :forceRender="forceRender"
+          >
+            <TableContent
+              ref="listRefreshCall31"
+              :tap-name="'gpolicy'"
+              :action-from="'WSPolicyList'"
+              :resource="resource"
+            />
+          </a-tab-pane>
+          <a-tab-pane
+            key="2"
+            :tab="$t('label.webclient.policy')"
+            :forceRender="forceRender"
+          >
+            <TableContent
+              ref="listRefreshCall32"
+              :tap-name="'wpolicy'"
+              :action-from="'WSPolicyList'"
+              :resource="resource"
+            />
+          </a-tab-pane>
+        </a-tabs>
+
+        <!-- <TableContent
+          ref="listRefreshCall3"
           :tap-name="'policy'"
-          :action-from="'policyDetail'"
-        />
+          :action-from="'WSPolicyList'"
+          :resource="resource"
+        /> -->
       </a-tab-pane>
-      <a-tab-pane key="4" :tab="$t('label.network.list')">
-        <TableContent ref="listRefleshCall4" :tap-name="'network'" />
+      <a-tab-pane
+        key="4"
+        :tab="$t('label.network.list')"
+        :forceRender="forceRender"
+      >
+        <TableContent
+          ref="listRefreshCall4"
+          :tap-name="'network'"
+          :resource="resource"
+        />
       </a-tab-pane>
     </a-tabs>
   </div>
@@ -34,25 +82,34 @@ import TableContent from "@/components/TableContent";
 
 export default defineComponent({
   components: { TableContent },
-  props: {},
-  setup(props) {
-    const tabPosition = ref("top");
-    const activeKey = ref("1");
-    return {
-      tabPosition,
-      activeKey,
-    };
+  props: {
+    resource: {
+      type: Object,
+      required: true,
+      default: null,
+    },
   },
-  data() {
-    return {};
+  emits: ["parentRefresh"],
+  setup() {
+    return {
+      tabPosition: ref("top"),
+      activeKey: ref("1"),
+      policyActiveKey: ref("1"),
+      forceRender: ref(true),
+    };
   },
   created() {},
   methods: {
-    reflesh() {
-      this.$refs.listRefleshCall1.fetchData();
-      this.$refs.listRefleshCall2.fetchData();
-      this.$refs.listRefleshCall3.fetchData();
-      this.$refs.listRefleshCall4.fetchData();
+    fetchRefresh(refreshClick) {
+      this.forceRender = true;
+      this.$refs.listRefreshCall1.fetchRefresh(refreshClick);
+      this.$refs.listRefreshCall2.fetchRefresh(refreshClick);
+      this.$refs.listRefreshCall31.fetchRefresh(refreshClick);
+      this.$refs.listRefreshCall32.fetchRefresh(refreshClick);
+      this.$refs.listRefreshCall4.fetchRefresh(refreshClick);
+    },
+    parentRefresh() {
+      this.$emit("parentRefresh");
     },
   },
 });

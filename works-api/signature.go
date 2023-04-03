@@ -17,8 +17,8 @@ func (s SortMoldParams) Len() int {
 	return len(s)
 }
 func (s SortMoldParams) Less(i, j int) bool {
-	for keyi, _ := range s[i] {
-		for keyj, _ := range s[j] {
+	for keyi := range s[i] {
+		for keyj := range s[j] {
 			return keyi < keyj
 		}
 	}
@@ -59,6 +59,7 @@ func makeStringParams(params []MoldParams) string {
 func makeSignature(payload string) string {
 	secretkey := os.Getenv("MoldSecretKey")
 	strurl := strings.Replace(strings.ToLower(payload), "+", "%20", -1)
+	//strurl = strings.Replace(strings.ToLower(strurl), "/", "%2F", -1)
 	log.Infof("makeSignature payload [%v]\n", payload)
 	secret := []byte(secretkey)
 	message := []byte(strurl)

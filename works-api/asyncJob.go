@@ -32,6 +32,7 @@ func asyncJobMonitoring() {
 	}
 	defer db.Close()
 	for {
+		log.Debugf("asyncjob exec")
 		var count int
 		err = db.QueryRow("SELECT count(*) FROM async_job where ready = 1").Scan(&count)
 		if err != nil {
@@ -63,6 +64,7 @@ func asyncJobExec() {
 		log.Info("Async Job VM Destroy Execution.")
 		instanceList, _ := selectInstanceList(asyncJob.ExecUuid, InstanceString)
 		if instanceList == nil {
+			deleteAsyncJob(asyncJob.Id)
 			return
 		} else {
 			instanceInfo := instanceList[0]
@@ -76,6 +78,8 @@ func asyncJobExec() {
 				workspaceInfo := workspaceList[0]
 				deleteAsyncJob(asyncJob.Id)
 				deleteInstance(asyncJob.ExecUuid)
+				delConnection(instanceInfo.Name)
+				deleteComputer(instanceInfo.Name)
 				updateWorkspaceQuantity(workspaceInfo.Uuid)
 			} else {
 				deleteAsyncJob(asyncJob.Id)
@@ -90,10 +94,11 @@ func asyncJobExec() {
 		resultFailQuantity := 0
 		workspaceList, _ := selectWorkspaceList(asyncJob.ExecUuid)
 		workspaceInfo := workspaceList[0]
+		//var instanceType string
+		//if workspaceInfo.
 		for i := 1; i <= deployQuantity; i++ {
 			log.Infof("resultWorkspaceInfo [%v]", workspaceInfo)
-			instanceUuid := getUuid()
-			resultGetDeployVirtualMachine := getDeployVirtualMachine(workspaceInfo.Uuid, instanceUuid, InstanceString)
+			resultGetDeployVirtualMachine, instanceUuid := getDeployVirtualMachine(workspaceInfo, InstanceString)
 			log.WithFields(logrus.Fields{"asyncJob.go": "resultGetDeployVirtualMachine"}).Infof("%v", resultGetDeployVirtualMachine)
 			time.Sleep(time.Second * 10)
 			if resultGetDeployVirtualMachine["deployvirtualmachineresponse"].(map[string]interface{})["jobid"] == nil {
@@ -115,6 +120,7 @@ func asyncJobExec() {
 				instance.Name = listVirtualMachinesMetrics.Virtualmachine[0].Displayname
 				instance.WorkspaceUuid = workspaceInfo.Uuid
 				instance.WorkspaceName = workspaceInfo.Name
+				instance.Ipaddress = listVirtualMachinesMetrics.Virtualmachine[0].Ipaddress
 				resultInsertInstance := insertInstance(instance)
 				params := []MoldParams{
 					{"resourceids": instance.MoldUuid},
@@ -124,13 +130,14 @@ func asyncJobExec() {
 					{"tags[1].key": WorkspaceName},
 					{"tags[1].value": workspaceInfo.Name},
 					{"tags[2].key": ClusterName},
-					{"tags[2].value": "WorkspaceIP"},
+					{"tags[2].value": os.Getenv("ClusterName")},
 				}
-				aaa := getCreateTags(params)
-				log.Info(aaa)
+				resultGetCreateTags := getCreateTags(params)
+				log.Infof("Create Tag Result [%v], params [%v]", resultGetCreateTags, params)
 
 				log.Info("The virtual machine has been successfully created.")
 				log.Info(resultInsertInstance)
+				go handshakeVdi(instance, InstanceString)
 			}
 			updateWorkspaceQuantity(workspaceInfo.Uuid)
 		}
@@ -143,10 +150,9 @@ func asyncJobExec() {
 		params := []MoldParams{
 			{"id": instanceInfo.MoldUuid},
 		}
-		resultdata := getStopVirtualMachine(params)
-		log.Info(resultdata)
-		//stopvirtualmachineresponse:map[jobid:ff6e9d7a-63ea-4165-b843-5514b3327fdb]] (/Users/smlee/github/ablestack-desktop/works-api/asyncJ
-		if resultdata["stopvirtualmachineresponse"].(map[string]interface{})["jobid"].(string) != "" {
+		resultData := getStopVirtualMachine(params)
+		log.Info(resultData)
+		if resultData["stopvirtualmachineresponse"].(map[string]interface{})["jobid"].(string) != "" {
 			deleteAsyncJob(asyncJob.Id)
 		}
 	} else if asyncJob.Name == VMStart { //instance start
@@ -156,9 +162,21 @@ func asyncJobExec() {
 		params := []MoldParams{
 			{"id": instanceInfo.MoldUuid},
 		}
-		resultdata := getStartVirtualMachine(params)
-		log.Info(resultdata)
-		if resultdata["startvirtualmachineresponse"].(map[string]interface{})["jobid"].(string) != "" {
+		resultData := getStartVirtualMachine(params)
+		log.Info(resultData)
+		if resultData["startvirtualmachineresponse"].(map[string]interface{})["jobid"].(string) != "" {
+			deleteAsyncJob(asyncJob.Id)
+		}
+	} else if asyncJob.Name == VMReboot { //instance start
+		log.Info("Async Job VM Restart Execution.")
+		instanceList, _ := selectInstanceList(asyncJob.ExecUuid, InstanceString)
+		instanceInfo := instanceList[0]
+		params := []MoldParams{
+			{"id": instanceInfo.MoldUuid},
+		}
+		resultData := getRebootVirtualMachine(params)
+		log.Info(resultData)
+		if resultData["rebootvirtualmachineresponse"].(map[string]interface{})["jobid"].(string) != "" {
 			deleteAsyncJob(asyncJob.Id)
 		}
 	}

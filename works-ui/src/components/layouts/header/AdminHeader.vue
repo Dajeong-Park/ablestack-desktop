@@ -1,112 +1,52 @@
 <template>
-  <a-row class="user-menu">
-    <a-col :span="12">
-      <menu-unfold-outlined
-        v-if="state.collapsed"
-        class="trigger3"
-        @click="setCollapsed()"
-      />
-      <menu-fold-outlined v-else class="trigger3" @click="setCollapsed()" />
+  <a-row type="flex">
+    <a-col :flex="1">
+      <menu-unfold-outlined v-if="state.collapsed" class="menu-collapsed" @click="setCollapsed()" />
+      <menu-fold-outlined v-else class="menu-collapsed" @click="setCollapsed()" />
     </a-col>
-    <a-col
-      :span="12"
-      style="float: right; text-align: right; padding-right: 40px"
-    >
-      <a-dropdown placement="bottomRight">
-        <a-button type="text" shape="circle" class="header-notice-button">
-          <a class="ant-dropdown-link" @click.prevent>
-            <font-awesome-icon
-              :icon="['fas', 'language']"
-              style="color: #666; margin-bottom: -2px"
-              class="login-icon"
-            />
-            <!-- <GlobalOutlined /> -->
-          </a>
-        </a-button>
+    <a-col :flex="4" class="header-col-right">
+      <span class="header-col"> 【 {{ $t("label.cluster") }} : {{ clusterName }} ㅣ {{ $t("label.domain") }} : {{ domainName }} 】 </span>
+      <a-dropdown placement="bottom">
+        <span class="header-col">
+          <TranslationOutlined />
+        </span>
         <template #overlay>
-          <a-menu :selected-keys="[language]" @click="setLocaleClick">
+          <a-menu :selected-keys="[language]" class="header-dropdown-menu" @click="setLocaleClick">
             <a-menu-item key="ko" value="koKR"> 한국어 </a-menu-item>
             <a-menu-item key="en" value="enUS"> English </a-menu-item>
           </a-menu>
         </template>
       </a-dropdown>
-      <a-button type="text" shape="circle" class="header-notice-button">
-        <a class="ant-dropdown-link" @click.prevent>
-          <BellOutlined class="header-notice-icon" />
-        </a>
-      </a-button>
-      <a-dropdown placement="bottomRight">
-        <a-button type="text" shape="circle" class="header-notice-button">
-          <a class="ant-dropdown-link" @click.prevent>
-            <UserOutlined class="header-notice-icon" />
-          </a>
-        </a-button>
+      <a-dropdown placement="bottom">
+        <span class="header-col">
+          <UserOutlined />
+          {{ userName }}
+        </span>
         <template #overlay>
-          <a-menu style="width: 100%">
-            <a-menu-item key="a">
-              <template #icon>
-                <UserOutlined />
-              </template>
-              <router-link :to="{ path: '/accountDetail/' + username }" style="margin-left: 4px;">
-                {{ $t("label.profile") }}
-              </router-link>
+          <a-menu class="header-dropdown-menu">
+            <a-menu-item key="1" @click="accountInfo">
+              <UserOutlined />
+              <span style="margin: 10px"> {{ $t("label.profile") }} </span>
             </a-menu-item>
-            <a-menu-item key="b" @click="logoutSubmit">
-              <template #icon>
-                <LogoutOutlined />
-              </template>
-              {{ $t("label.logout") }}
+            <a-menu-item key="2" @click="dcConWebClient">
+              <control-outlined />
+              <span style="margin: 10px"> {{ $t("label.dcvm.connect") }}</span>
+            </a-menu-item>
+            <a-menu-divider />
+            <a-menu-item key="3" @click="logoutSubmit">
+              <LogoutOutlined />
+              <span style="margin: 10px">{{ $t("label.logout") }}</span>
             </a-menu-item>
           </a-menu>
         </template>
       </a-dropdown>
-      <!-- <a-popover placement="bottom">
-        <template #content>
-          <a-button type="text" @click="setLocaleClick() $i18n.locale = 'ko'">한국어</a-button>
-          <br />
-          <a-button type="text" @click="$i18n.locale = 'en'">English</a-button>
-        </template>
-        <a-button type="text" shape="circle" class="header-notice-button">
-          <template #icon>
-            <font-awesome-icon
-              :icon="['fas', 'language']"
-              size="4x"
-              style="color: #666; padding-top: 3px"
-              class="login-icon"
-            />
-          </template>
-        </a-button>
-      </a-popover> -->
-
-      <!-- <a-popover style="text-align: left">
-        <template #content>
-          <a-card size="small" style="width: 150px" :bordered="false" >
-            <a-button type="text" class="">
-              <UserOutlined />{{ $t("label.profile") }}
-            </a-button>
-            <a-divider />
-            <a-button type="text" class="" @click="logoutSubmit">
-              <LogoutOutlined />{{ $t("label.logout") }}
-            </a-button>
-          </a-card>
-        </template>
-        <a-button type="text" shape="circle" class="header-notice-button">
-          <template #icon>
-            <UserOutlined class="header-notice-icon" />
-          </template>
-          {{ state.userID }}
-        </a-button>
-      </a-popover> -->
     </a-col>
   </a-row>
 </template>
 
 <script>
 import { defineComponent, reactive, ref } from "vue";
-import { message } from "ant-design-vue";
-import { axiosUserDetail, axiosLogout } from "@/api/index";
-import store from "@/store/index";
-import router from "@/router";
+import { axiosLogout } from "@/api/index";
 export default defineComponent({
   name: "AdminHeader",
   components: {},
@@ -115,9 +55,7 @@ export default defineComponent({
   },
   emits: ["setCollapsed"],
   setup(props) {
-    let res;
     const state = reactive({
-      //userID: "",
       collapsed: ref(props.collapsed),
     });
     return {
@@ -126,9 +64,10 @@ export default defineComponent({
   },
   data() {
     return {
-      language: ref(""),
-      loadedLanguage: [],
-      username: ref(""),
+      cryptKey: "IgmTQVMISq9t4Bj7iRz7kZklqzfoXuq1",
+      cryptIv: "zxy0123456789abc",
+      language: sessionStorage.getItem("locale") || "ko",
+      userName: ref(""),
     };
   },
   created() {
@@ -137,12 +76,9 @@ export default defineComponent({
     //   this.$store.dispatch("loginCommit",res.data);
     //   this.state.userID = res.data.result.name;
     // }
-    this.language =
-      sessionStorage.getItem("locale") === null
-        ? "ko"
-        : sessionStorage.getItem("locale");
-    this.username = sessionStorage.getItem("username");
-    this.setLocale(this.language);
+    this.userName = sessionStorage.getItem("userName");
+    this.clusterName = sessionStorage.getItem("clusterName");
+    this.domainName = sessionStorage.getItem("domainName");
   },
   methods: {
     setCollapsed() {
@@ -155,69 +91,75 @@ export default defineComponent({
         localeValue = "ko";
       }
       this.setLocale(localeValue);
-      // setTimeout(() => {
-      //   location.reload();
-      // }, 0);
     },
     setLocale(localeValue) {
+      this.language = localeValue;
       this.$locale = localeValue;
       this.$i18n.locale = localeValue;
-      this.language = localeValue;
       sessionStorage.setItem("locale", localeValue);
     },
     async logoutSubmit() {
       const res = await axiosLogout();
       if (res.data.result.login === false || res.data.result.status > 200) {
-        message.success(this.$t("message.logout.success"), 2);
-        await store.dispatch("logoutCommit");
-        await router.push({ name: "Login" });
+        this.$message.success(this.$t("message.logout.success"), 5);
+        await this.$store.dispatch("logoutCommit");
+        await this.$router.push({ name: "Login" });
       }
     },
-    setLanguage(lang, message) {
-      if (i18n) {
-        i18n.locale = lang;
-        if (message && Object.keys(message).length > 0) {
-          i18n.setLocaleMessage(lang, message);
-        }
-      }
-      if (!this.loadedLanguage.includes(lang)) {
-        this.loadedLanguage.push(lang);
-      }
-      if (message && Object.keys(message).length > 0) {
-        messages[lang] = message;
-      }
+    // setLanguage(lang, message) {
+    //   if (i18n) {
+    //     i18n.locale = lang;
+    //     if (message && Object.keys(message).length > 0) {
+    //       i18n.setLocaleMessage(lang, message);
+    //     }
+    //   }
+    //   if (!this.loadedLanguage.includes(lang)) {
+    //     this.loadedLanguage.push(lang);
+    //   }
+    //   if (message && Object.keys(message).length > 0) {
+    //     messages[lang] = message;
+    //   }
+    // },
+    accountInfo() {
+      this.$router.push({ path: "/accountDetail/" + this.userName });
+    },
+    dcConWebClient() {
+      const liteParamArr = {};
+      liteParamArr["client-name"] = "ABLESTACK Works";
+      liteParamArr["hostname"] = sessionStorage.getItem("dcurl");
+      liteParamArr["password"] = "Ablecloud1!";
+      liteParamArr["port"] = "13389";
+      liteParamArr["username"] = sessionStorage.getItem("userName");
+      liteParamArr["domain"] = sessionStorage.getItem("domainName");
+      // liteParamArr["enable-touch"] = true;
+      // console.log(liteParamArr);
+
+      const cipher = this.$CryptoJS.AES.encrypt(JSON.stringify(liteParamArr), this.$CryptoJS.enc.Utf8.parse(this.cryptKey), {
+        iv: this.$CryptoJS.enc.Utf8.parse(this.cryptIv), // [Enter IV (Optional) 지정 방식]
+        padding: this.$CryptoJS.pad.Pkcs7,
+        mode: this.$CryptoJS.mode.CBC, // [cbc 모드 선택]
+      });
+      const encrypted = btoa(cipher.toString());
+      window.open("/clientdc/" + encrypted, "_blank");
     },
   },
 });
 </script>
 
-<style scoped>
-.header-notice-icon {
-  font-size: 18px;
+<style scoped></style>
+<style>
+.header-col-right {
+  text-align: right;
 }
-.header-notice-button {
-  margin-left: 10px;
-  margin-right: 10px;
-}
-
-.user-menu {
-  background: white;
-  height: 100%;
-}
-.login-icon {
-  font-size: 24px;
-}
-.header-popover-button {
-  width: 100%;
-  text-align: left;
-  padding: 0;
-}
-.logout-button {
-  margin-top: 14px;
-  border-top: 1px solid #e8e8e8;
+.header-col {
+  font-size: 16px;
+  margin-right: 20px;
 }
 
-.trigger3 {
+.header-dropdown-menu {
+  width: 110%;
+}
+.menu-collapsed {
   font-size: 18px;
   line-height: 64px;
   padding: 0 24px;
@@ -225,7 +167,17 @@ export default defineComponent({
   transition: color 0.3s;
 }
 
-.trigger3:hover {
+.menu-collapsed:hover {
   color: #1890ff;
+}
+.ant-dropdown-menu-item-selected,
+.ant-dropdown-menu-submenu-title-selected {
+  color: #1890ff !important;
+  background-color: #e6f7ff !important;
+}
+.ant-dropdown-menu-item:hover,
+.ant-dropdown-menu-submenu-title:hover {
+  color: #1890ff !important;
+  background-color: #e6f7ff !important;
 }
 </style>

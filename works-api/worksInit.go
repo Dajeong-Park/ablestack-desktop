@@ -3,16 +3,47 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
 	"os"
-	"time"
+	"strconv"
+	"strings"
 )
 
-type Configuration struct {
-	Id, Name, Category, Value, DefaultValue, Description string
-	UpdateDate                                           time.Time
+type settingInfo struct {
+	Database struct {
+		TYPE string `json:"type"`
+		User struct {
+			ID       string `json:"id"`
+			Password string `json:"password"`
+		} `json:"user"`
+		Host struct {
+			Address  string `json:"address"`
+			Port     string `json:"port"`
+			Protocol string `json:"protocol"`
+		} `json:"host"`
+		DB string `json:"db"`
+	} `json:"database"`
+}
+
+//WorksConfig
+var WorksConfig settingInfo
+
+func getWorksInfo() settingInfo {
+	file, err := os.Open("properties.json")
+	defer file.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&WorksConfig)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(WorksConfig)
+	return WorksConfig
 }
 
 func DBSetting() {
@@ -28,7 +59,7 @@ func DBSetting() {
 
 func Setup() {
 	i := 0
-	for i == 1{
+	for i == 1 {
 		db, err := sql.Open(os.Getenv("MysqlType"), os.Getenv("DbInfo"))
 		if err != nil {
 			log.WithFields(logrus.Fields{
@@ -324,4 +355,191 @@ func GuacamoleSetting() {
 	os.Setenv("GuacamoleIp", url)
 	os.Setenv("GuacamolePort", port)
 	os.Setenv("GuacamoleUsername", username)
+
+}
+
+func ClusterNameSetting() {
+	db, err := sql.Open(os.Getenv("MysqlType"), os.Getenv("DbInfo"))
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"worksInit": "ClusterNameSetting",
+		}).Errorf("DB connect error[%v]", err)
+	}
+	defer db.Close()
+	log.WithFields(logrus.Fields{
+		"worksInit": "ClusterNameSetting",
+	}).Infof("DB connect success")
+
+	rows, err := db.Query("SELECT * FROM configuration WHERE name LIKE 'cluster.default%'")
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"worksInit": "ClusterNameSetting",
+		}).Errorf("worksInit Guacamole Setting Query Failed[%v]", err)
+	}
+	defer rows.Close()
+
+	result, err := rowsToString(rows)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"worksInit": "ClusterNameSetting",
+		}).Errorf("Row to String conversion error [%v]", err)
+	}
+
+	jsonUnmarshal := []Configuration{}
+	err = json.Unmarshal([]byte(result), &jsonUnmarshal)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"worksInit": "ClusterNameSetting",
+		}).Errorf("String to JSON conversion error [%v]", err)
+	}
+
+	clusterValue := map[string]interface{}{}
+	for _, v := range jsonUnmarshal {
+		clusterValue[v.Name] = v.Value
+	}
+	clusterName := clusterValue["cluster.default.name"].(string)
+
+	log.WithFields(logrus.Fields{
+		"worksInit": "WorksSetting",
+	}).Infof("clutster Name [%v]", clusterName)
+	os.Setenv("ClusterName", clusterName)
+
+}
+
+func RDPPortSetting() {
+	db, err := sql.Open(os.Getenv("MysqlType"), os.Getenv("DbInfo"))
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"worksInit": "RDPPortSetting",
+		}).Errorf("DB connect error[%v]", err)
+	}
+	defer db.Close()
+	log.WithFields(logrus.Fields{
+		"worksInit": "RDPPortSetting",
+	}).Infof("DB connect success")
+
+	rows, err := db.Query("SELECT * FROM configuration WHERE name LIKE 'rdp.default%'")
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"worksInit": "RDPPortSetting",
+		}).Errorf("worksInit RDP port Setting Query Failed[%v]", err)
+	}
+	defer rows.Close()
+
+	result, err := rowsToString(rows)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"worksInit": "RDPPortSetting",
+		}).Errorf("Row to String conversion error [%v]", err)
+	}
+
+	jsonUnmarshal := []Configuration{}
+	err = json.Unmarshal([]byte(result), &jsonUnmarshal)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"worksInit": "RDPPortSetting",
+		}).Errorf("String to JSON conversion error [%v]", err)
+	}
+
+	clusterValue := map[string]interface{}{}
+	for _, v := range jsonUnmarshal {
+		clusterValue[v.Name] = v.Value
+	}
+	portForRDP := clusterValue["rdp.default.port"].(string)
+	portForwardingRange := clusterValue["rdp.default.forwarding.range"].(string)
+
+	slice1 := strings.Split(portForwardingRange, "-")
+
+	RDPPortForwardingBSetting(slice1[0], slice1[1])
+
+	log.WithFields(logrus.Fields{
+		"worksInit": "RDPPortSetting",
+	}).Errorf("portForRDPpp [%v]", portForwardingRange)
+
+	log.WithFields(logrus.Fields{
+		"worksInit": "RDPPortSetting",
+	}).Infof("RDP Port [%v]", portForRDP)
+	os.Setenv("PortForRDP", portForRDP)
+
+	db.Close()
+}
+
+func RDPPortForwardingBSetting(portForwardingStartStr string, portForwardingEndStr string) {
+	db, err := sql.Open(os.Getenv("MysqlType"), os.Getenv("DbInfo"))
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"worksInit": "RDPPortForwardingBSetting",
+		}).Errorf("DB connect error[%v]", err)
+	}
+	defer db.Close()
+	log.WithFields(logrus.Fields{
+		"worksInit": "RDPPortForwardingBSetting",
+	}).Infof("DB connect success")
+
+	var portForwardingMap int
+	err = db.QueryRow("SELECT count(*) FROM port_forwarding_map where instance_uuid IS NOT NULL").Scan(&portForwardingMap)
+
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"worksInit": "RDPPortForwardingBSetting",
+		}).Errorf("worksInit RDP port Setting Query Failed[%v]", err)
+	}
+	portForwardingStartInt, _ := strconv.Atoi(portForwardingStartStr)
+	portForwardingEndInt, _ := strconv.Atoi(portForwardingEndStr)
+
+	//portRange := portForwardingEndInt - portForwardingStartInt
+	if portForwardingMap == 0 {
+
+		deleteResult, err := db.Exec("DELETE FROM port_forwarding_map")
+		if err != nil {
+			log.WithFields(logrus.Fields{
+				"worksInit": "RDPPortForwardingBSetting",
+			}).Errorf("An error occurred while deleting the port_forwarding_map table data. [%v]", err)
+		}
+
+		nRow, _ := deleteResult.RowsAffected()
+		log.WithFields(logrus.Fields{
+			"worksInit": "RDPPortForwardingBSetting",
+		}).Infof("Deleted %v data", nRow)
+
+		insertResultCount := 0
+		for i := portForwardingStartInt; i <= portForwardingEndInt; i++ {
+
+			insertResult, _ := db.Exec("INSERT INTO port_forwarding_map (port_forwarding) value (?)", i)
+			nInsertRow, _ := insertResult.RowsAffected()
+			if nInsertRow == 1 {
+				insertResultCount++
+			}
+		}
+
+		db.Close()
+	}
+
+	//defer rows.Close()
+	//
+	//result, err := rowsToString(rows)
+	//if err != nil {
+	//	log.WithFields(logrus.Fields{
+	//		"worksInit": "RDPPortSetting",
+	//	}).Errorf("Row to String conversion error [%v]", err)
+	//}
+
+	//jsonUnmarshal := []Configuration{}
+	//err = json.Unmarshal([]byte(result), &jsonUnmarshal)
+	//if err != nil {
+	//	log.WithFields(logrus.Fields{
+	//		"worksInit": "RDPPortSetting",
+	//	}).Errorf("String to JSON conversion error [%v]", err)
+	//}
+
+	//clusterValue := map[string]interface{}{}
+	//for _, v := range jsonUnmarshal {
+	//	clusterValue[v.Name] = v.Value
+	//}
+	//portForRDP := clusterValue["rdp.default.port"].(string)
+
+	//log.WithFields(logrus.Fields{
+	//	"worksInit": "RDPPortSetting",
+	//}).Infof("RDP Port [%v]", portForRDP)
+	//os.Setenv("PortForRDP", portForRDP)
 }

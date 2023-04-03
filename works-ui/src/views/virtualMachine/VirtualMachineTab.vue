@@ -1,17 +1,23 @@
 <template>
   <div id="ContentTab">
     <a-tabs v-model:activeKey="activeKey" :tab-position="tabPosition">
-      <a-tab-pane key="1" :tab="$t('label.detail')">
+      <a-tab-pane key="1" :tab="$t('label.detail')" :forceRender="forceRender">
         <DetailContent
-          ref="listRefleshCall1"
-          :action-from="'VirtualMachineDetail'"
+          ref="listRefreshCall1"
+          :action-from="'VMDetail'"
+          :resource="resource"
         />
       </a-tab-pane>
-      <a-tab-pane key="2" :tab="$t('label.disk.list')">
+      <a-tab-pane
+        key="2"
+        :tab="$t('label.disk.list')"
+        :forceRender="forceRender"
+      >
         <TableContent
-          ref="listRefleshCall2"
+          ref="listRefreshCall2"
           :tap-name="'datadisk'"
-          :action-from="'VirtualMachineDetail'"
+          :action-from="'VMDetail'"
+          :resource="resource"
         />
       </a-tab-pane>
       <!-- <a-tab-pane key="3" :tab="$t('label.network.list')">
@@ -30,24 +36,32 @@ export default defineComponent({
     TableContent,
     DetailContent,
   },
-  props: {},
+  props: {
+    resource: {
+      type: Object,
+      required: true,
+      default: null,
+    },
+  },
   setup() {
-    const tabPosition = ref("top");
-    const activeKey = ref("1");
     return {
-      tabPosition,
-      activeKey,
+      tabPosition: ref("top"),
+      activeKey: ref("1"),
+      forceRender: ref(false),
     };
   },
   data() {
     return {};
   },
   created() {
+    setTimeout(() => {
+      this.forceRender = true;
+    }, 1000);
   },
   methods: {
-    reflesh() {
-      this.$refs.listRefleshCall1.reflesh();
-      this.$refs.listRefleshCall2.fetchData();
+    fetchRefresh() {
+      this.$refs.listRefreshCall1.fetchRefresh();
+      this.$refs.listRefreshCall2.fetchRefresh();
     },
   },
 });

@@ -1,137 +1,102 @@
 <template>
   <div class="user-layout desktop">
-    <div class="user-layout-container">
-      <div class="user-layout-container">
-        <img
-          src="../../assets/ablestack-logo.png"
-          alt="logo"
-          class="user-layout-logo"
-        />
+    <div style="position: relative z-index: 999;">
+      <a-alert v-if="statusBool" :message="statusMess" :description="statusDesc" :type="statusType" banner show-icon>
+        <!-- <template #icon>
+          <smile-outlined />
+          <smile-outlined v-if="statusType == 'success'" />
+          <frown-outlined v-else /> -->
+        <!-- </template> -->
+      </a-alert>
+    </div>
+    <div class="user-layout-container" style="position: absolute; z-index: 1">
+      <div class="user-layout-header">
+        <img src="@/assets/ablestack-logo.png" alt="logo" class="user-layout-logo" />
       </div>
-      <a-form
-        ref="formRef"
-        layout="horizontal"
-        :model="formState"
-        :rules="rules"
-        @finish="onSubmit"
-        class="user-layout-login"
-      >
-        <a-form-item has-feedback name="id">
-          <a-input
-            v-model:value="formState.id"
-            :placeholder="$t('label.user.id')"
-            size="large"
-          >
-            <template #prefix>
-              <UserOutlined style="color: rgba(0, 0, 0, 0.25)" />
-            </template>
-          </a-input>
-        </a-form-item>
-        <a-form-item has-feedback name="password">
-          <a-input-password
-            v-model:value="formState.password"
-            type="password"
-            :placeholder="$t('label.password')"
-            size="large"
-          >
-            <template #prefix>
-              <LockOutlined style="color: rgba(0, 0, 0, 0.25)" />
-            </template>
-          </a-input-password>
-        </a-form-item>
-        <a-form-item style="margin-bottom: 0">
-          <a-button type="primary" block class="login-button" html-type="submit">
-            {{ $t("label.login") }}
-          </a-button>
-        </a-form-item>
-        <!--   언어변환 버튼 start     -->
-        <!-- <a-popover placement="bottom">
-          <template #content>
-            <a-button type="text" @click="setLocale('ko')">
-              한국어
+
+      <a-spin :spinning="spinning">
+        <a-form :ref="formRef" layout="horizontal" :model="form" :rules="rules" @finish="onSubmit" class="user-layout-login">
+          <a-form-item has-feedback name="id">
+            <a-input v-model:value="form.id" :placeholder="$t('placeholder.user.account')" size="large">
+              <template #prefix>
+                <UserOutlined style="color: rgba(0, 0, 0, 0.25)" />
+              </template>
+            </a-input>
+          </a-form-item>
+
+          <a-form-item has-feedback name="password">
+            <a-input-password v-model:value="form.password" type="password" :placeholder="$t('placeholder.user.password')" size="large" autocomplete="off">
+              <template #prefix>
+                <LockOutlined style="color: rgba(0, 0, 0, 0.25)" />
+              </template>
+            </a-input-password>
+          </a-form-item>
+          <a-form-item style="margin-bottom: 0">
+            <a-button type="primary" block class="login-button" html-type="submit">
+              {{ $t("label.login") }}
             </a-button>
-            <br />
-            <a-button type="text" @click="setLocale('en')">
-              English
-            </a-button>
-          </template>
-          <a-button type="text">
-            <template #icon>
-              <font-awesome-icon
-                  :icon="['fas', 'language']"
-                  size="4x"
-                  style="color: #666"
-                  class="login-ico"
-              />
+          </a-form-item>
+          <!--   언어변환 버튼 start     -->
+          <a-dropdown placement="bottomLeft">
+            <span>
+              <TranslationOutlined class="login-translation" style="font-size: 20px" />
+            </span>
+            <template #overlay>
+              <a-menu :selected-keys="[language]" class="header-dropdown-menu" @click="setLocaleClick">
+                <a-menu-item key="ko" value="koKR"> 한국어 </a-menu-item>
+                <a-menu-item key="en" value="enUS"> English </a-menu-item>
+              </a-menu>
             </template>
-          </a-button>
-        </a-popover> -->
-        <a-dropdown>
-          <a-button type="text" shape="circle" class="header-notice-button">
-            <a class="ant-dropdown-link" @click.prevent>
-              <font-awesome-icon
-                :icon="['fas', 'language']"
-                size="2x"
-                style="color: #666"
-                class="login-icon"
-              />
-              <!-- <GlobalOutlined /> -->
-            </a>
-          </a-button>
-          <template #overlay>
-            <a-menu :selected-keys="[language]" @click="setLocaleClick">
-              <a-menu-item key="ko" value="koKR"> 한국어 </a-menu-item>
-              <a-menu-item key="en" value="enUS"> English </a-menu-item>
-            </a-menu>
-          </template>
-        </a-dropdown>
-        <!--   언어변환 버튼 끝     -->
-      </a-form>
+          </a-dropdown>
+          <!--   언어변환 버튼 끝     -->
+        </a-form>
+      </a-spin>
     </div>
   </div>
+  <!-- </a-spin> -->
 </template>
 
 <script>
 import { defineComponent, reactive, ref } from "vue";
-import { message } from "ant-design-vue";
-import { worksApi } from "@/api/index";
-import store from "@/store/index";
-import router from "@/router";
-
 export default defineComponent({
   name: "Login",
-  setup() {
-    const formRef = ref();
-    const formState = reactive({
-      id: ref(""),
-      password: ref(""),
-    });
-    const rules = {
-      id: {
-        required: true,
-        trigger: "change",
-      },
-      password: {
-        required: true,
-        trigger: "change",
-      },
-    };
-    return {
-      formRef,
-      formState,
-      rules,
-    };
-  },
+  components: {},
+  setup() {},
   data() {
-    return {};
+    return {
+      timer: ref(null),
+      spinning: ref(true),
+      language: "ko",
+      statusBool: ref(true),
+      statusMess: ref(this.$t("message.status.check.worksapi")),
+      statusDesc: ref(this.$t("message.status.check.desc.wait")),
+      statusType: ref("info"),
+    };
   },
-  computed: {},
+  mounted() {
+    this.language = sessionStorage.getItem("locale") || "ko";
+    this.setLocale(this.language);
+  },
   created() {
-    this.rules.id.message = this.$t("message.please.enter.your.id");
-    this.rules.password.message = this.$t("message.please.enter.your.password");
-    this.onClear();
+    this.initForm();
+    sessionStorage.clear();
+    this.serverCheck();
+    this.timer = setInterval(() => {
+      this.serverCheck();
+    }, 10000);
+  },
+  beforeUnmount() {
+    clearInterval(this.timer);
   },
   methods: {
+    initForm() {
+      this.formRef = ref();
+      this.form = reactive({});
+      this.rules = {
+        id: { required: true, trigger: "change", message: this.$t("message.please.enter.your.id") },
+        password: { required: true, trigger: "change", message: this.$t("message.please.enter.your.password") },
+      };
+    },
     setLocaleClick(e) {
       let localeValue = e.key;
       if (!localeValue) {
@@ -140,62 +105,126 @@ export default defineComponent({
       this.setLocale(localeValue);
     },
     setLocale(localeValue) {
+      this.language = localeValue;
       this.$locale = localeValue;
       this.$i18n.locale = localeValue;
-      this.language = localeValue;
       sessionStorage.setItem("locale", localeValue);
       //this.loadLanguageAsync(localeValue);
     },
-    onClear() {
-      sessionStorage.clear();
-    },
     onSubmit() {
       let params = new URLSearchParams();
-      this.formRef
+      this.formRef.value
         .validate()
         .then(() => {
-          message.loading(this.$t("message.logging"), 10);
-          params.append("id", this.formState.id);
-          params.append("password", this.formState.password);
-          // try {
-          //  res = await axiosLogin(params)
-          worksApi
+          this.$message.destroy();
+          this.$message.loading(this.$t("message.logging"), 0);
+          params.append("id", this.form.id);
+          params.append("password", this.form.password);
+          this.$worksApi
             .post("/api/login", params)
             .then((response) => {
               //console.log(response);
-              if (response.status === 200) {
-                if (response.data.result.isAdmin == "false") {
-                  message.error(this.$t("message.login.wrong"));
-                  router.push({ name: "Login" });
-                } else {
-                  store.dispatch("loginCommit", response.data);
-                  sessionStorage.setItem("token", response.data.result.token);
-                  sessionStorage.setItem(
-                    "username",
-                    response.data.result.username
-                  );
-                  router.push({ name: "Dashboard" });
-                  message.destroy();
-                  message.success(this.$t("message.login.completed"));
-                }
+              const data = response.data.result;
+              if (response.status === 200 && data.login === true) {
+                this.$store.dispatch("loginCommit", response.data);
+                sessionStorage.setItem("token", data.token);
+                sessionStorage.setItem("locale", sessionStorage.getItem("locale") == null ? process.env.VUE_APP_I18N_LOCALE : sessionStorage.getItem("locale"));
+                sessionStorage.setItem("userName", data.username);
+                sessionStorage.setItem("isAdmin", data.isAdmin);
+                sessionStorage.setItem("clusterName", data.clusterName);
+                sessionStorage.setItem("domainName", data.domainName);
+
+                this.$worksApi
+                  .get("/api/v1/configuration")
+                  .then((response) => {
+                    // console.log(response.data);
+                    if (response.status === 200) {
+                      const dcurl = response.data.result.filter((it) => it.name == "dc.default.url")[0].value;
+                      const worksurl = response.data.result.filter((it) => it.name == "works.default.url")[0].value;
+                      sessionStorage.setItem("dcurl", dcurl);
+                      sessionStorage.setItem("worksurl", worksurl);
+                      if (data.username.toLowerCase() === "administrator") {
+                        this.$router.push({ name: "Dashboard" });
+                      } else {
+                        this.$router.push({ name: "UserDesktop" });
+                      }
+                    }
+                  })
+                  .catch((error) => {
+                    console.log(error);
+                  });
+                this.$message.destroy();
+                this.$message.success(this.$t("message.login.completed"), 5);
               } else {
-                message.destroy();
-                message.error(this.$t("message.login.wrong"));
+                this.$message.destroy();
+                this.$message.error(this.$t("message.login.wrong"));
               }
             })
-            .catch(function (error) {
+            .catch((error) => {
+              this.$message.destroy();
               console.log(error);
+              if (error.response.status === 400) {
+                this.$message.error(this.$t("message.login.wrong.400"));
+              } else if (error.response.status === 401) {
+                this.$message.error(this.$t("message.login.wrong.401"));
+              } else {
+                this.$message.error(this.$t("message.login.wrong"));
+              }
             });
-          // }catch (error){
-          //   message.destroy();
-          //   //TODO i18n 적용
-          //   console.log(error)
-          //   message.error(this.$t("message.login.wrong"))
-          // }
         })
         .catch((error) => {
           console.log("error", error);
         });
+    },
+    serverCheck() {
+      this.$worksApi
+        .get("/api/serverCheck")
+        .then((response) => {
+          if (response.status === 200) {
+            this.statCheck(response.data.result);
+          } else {
+            this.setStatView(400, "worksapi", "error", 200);
+          }
+        })
+        .catch((error) => {
+          this.setStatView(400, "worksapi", "error", 200);
+          // console.log(error.message);
+        })
+        .finally(() => {});
+    },
+    async statCheck(data) {
+      // console.log(data.Mold, data["Works-DC"], data["Works-Samba"]);
+      var res = await this.setStatView(data["Mold"], "moldapi", "info", 200);
+      if (!res) return false;
+      res = await this.setStatView(data["Works-DC"], "dc", "info", 200);
+      if (!res) return false;
+      res = await this.setStatView(data["Works-Samba"], "ad", "info", 200);
+      if (!res) return false;
+      await this.setStatView(200, "all", "success", 500);
+    },
+    setStatView(stat, cd, type, time) {
+      const _t = this;
+      return new Promise(function (resolve, reject) {
+        setTimeout(() => {
+          _t.statusMess = _t.$t("message.status.check." + cd);
+          if (stat === 200) {
+            _t.statusDesc = _t.$t("message.status.check.desc." + cd + ".ok");
+            _t.statusType = type;
+            if (cd === "all") {
+              clearInterval(_t.timer);
+              setTimeout(() => {
+                _t.spinning = false;
+                _t.statusBool = false;
+              }, 1200);
+            }
+            resolve(true);
+          } else {
+            _t.statusDesc = _t.$t("message.status.check.desc." + cd + ".fail");
+            _t.statusType = "error";
+            reject(false);
+          }
+        }, time);
+      });
     },
   },
 });
@@ -205,6 +234,27 @@ export default defineComponent({
 .user-layout {
   height: 100%;
 
+  &-container {
+    padding: 3rem 0;
+    width: 100%;
+
+    @media (min-height: 600px) {
+      top: 50%;
+      transform: translateY(-50%);
+      margin-top: -50px;
+    }
+  }
+  &-logo {
+    width: 400px;
+    border-style: none;
+    margin: 0 auto 2rem;
+    display: block;
+
+    .mobile & {
+      max-width: 300px;
+      margin-bottom: 1rem;
+    }
+  }
   button.login-button {
     margin-top: 8px;
     padding: 0 15px;
@@ -212,57 +262,20 @@ export default defineComponent({
     height: 40px;
     width: 100%;
   }
-
-  .user-login-other {
-    text-align: left;
-    margin-top: 24px;
-    line-height: 22px;
-
-    .item-icon {
-      font-size: 24px;
-      color: rgba(0, 0, 0, 0.2);
-      margin-left: 16px;
-      vertical-align: middle;
-      cursor: pointer;
-      transition: color 0.3s;
-
-      &:hover {
-        color: #1890ff;
-      }
-    }
-
-    .register {
-      float: right;
-    }
-  }
 }
-.user-layout-container {
-  padding: 3rem 0;
-  width: 100%;
-}
-
 .user-layout-login {
   min-width: 260px;
   width: 368px;
   margin: 0 auto;
 }
-
-.user-layout-logo {
-  width: 600px;
-  height: 80px;
-  margin: 0 auto 2rem;
-  border-style: none;
-  display: block;
-}
-.login-button {
-  margin-top: 8px;
-  padding: 0 15px;
-  font-size: 16px;
-  height: 40px;
-  width: 100%;
-}
-
-.login-ico {
-  font-size: 30px;
+// .user-layout-logo {
+//   width: 600px;
+//   margin: 0 auto 2rem;
+//   border-style: none;
+//   display: block;
+// }
+.login-translation {
+  font-size: 20px;
+  margin-top: 10px;
 }
 </style>

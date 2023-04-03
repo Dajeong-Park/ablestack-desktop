@@ -1,117 +1,122 @@
 <template>
   <a-spin :spinning="spinning">
-    <a-list v-if="actionFrom === 'VirtualMachineDetail'" item-layout="horizontal">
+    <a-list v-if="actionFrom === 'VMDetail'" item-layout="horizontal">
       <a-list-item>
         <strong>{{ $t("label.name") }}</strong>
         <br />
-        {{ vmMoldDataInfo.displayname }}
+        {{ resource.instanceMoldInfo.virtualmachine[0].displayname }}
       </a-list-item>
       <a-list-item>
         <strong>{{ $t("label.workspace") }}</strong>
         <br />
-        {{ vmDbDataInfo.workspace_name }}
+        {{ resource.instanceDBInfo.workspace_name }}
       </a-list-item>
       <a-list-item>
         <strong>{{ $t("label.vm.state") }}</strong>
-        <br />{{vmDbDataInfo.state}}
-        
+        <br />{{ resource.instanceDBInfo.state }}
+
         {{
-          vmMoldDataInfo.state == "Running"
+          resource.instanceDBInfo.mold_status === "Running"
             ? $t("label.vm.status.running")
-            : $t("label.vm.status.stopped")
+            : resource.instanceDBInfo.mold_status === "Starting"
+            ? $t("label.vm.status.starting")
+            : resource.instanceDBInfo.mold_status === "Stopping"
+            ? $t("label.vm.status.stopping")
+            : resource.instanceDBInfo.mold_status === "Stopped"
+            ? $t("label.vm.status.stopped")
+            : ""
         }}
       </a-list-item>
       <a-list-item>
         <strong>{{ $t("label.users") }}</strong>
         <br />
-        {{
-          vmDbDataInfo.owner_account_id == ""
-            ? $t("label.owner.account.false")
-            : vmDbDataInfo.owner_account_id
-        }}
+        {{ resource.instanceDBInfo.owner_account_id == "" ? $t("label.owner.account.false") : resource.instanceDBInfo.owner_account_id }}
       </a-list-item>
       <a-list-item>
         <strong>{{ $t("label.vm.session.count") }}</strong>
         <br />
-        {{ vmDbDataInfo.connected }}
+        {{ resource.instanceDBInfo.connected }}
       </a-list-item>
       <a-list-item>
         <strong>{{ $t("label.domain") }}</strong>
         <br />
-        {{ vmMoldDataInfo.domain }}
+        {{ resource.instanceMoldInfo.virtualmachine[0].domain }}
       </a-list-item>
       <a-list-item>
         <strong>{{ $t("label.hypervisor") }}</strong>
         <br />
-        {{ vmMoldDataInfo.hypervisor }}
+        {{ resource.instanceMoldInfo.virtualmachine[0].hypervisor }}
       </a-list-item>
       <a-list-item>
         <strong>{{ $t("label.pooltype") }}</strong>
         <br />
-        {{ vmMoldDataInfo.pooltype }}
+        {{ resource.instanceMoldInfo.virtualmachine[0].pooltype }}
       </a-list-item>
     </a-list>
-    <a-list v-if="actionFrom === 'UserDetail'" item-layout="horizontal">
+    <a-list v-if="actionFrom === 'UserDetail' || actionFrom === 'ACDetail'" item-layout="horizontal">
       <a-list-item>
-        <strong>{{ $t("label.account") }}</strong
-        ><br />
-        {{ userDataInfo.username }}
+        <strong>{{ $t("label.account") }}</strong>
+        <br />
+        {{ resource.username }}
       </a-list-item>
       <a-list-item>
-        <strong>{{ $t("label.country") }}</strong
-        ><br />
-        {{ userDataInfo.co }}
+        <strong>{{ $t("label.country") }}</strong>
+        <br />
+        {{ resource.co }}
       </a-list-item>
       <a-list-item>
-        <strong>{{ $t("label.countryCode") }}</strong
-        ><br />
-        {{ userDataInfo.countryCode }}
+        <strong>{{ $t("label.countryCode") }}</strong>
+        <br />
+        {{ resource.countryCode }}
       </a-list-item>
       <a-list-item>
-        <strong>{{ $t("label.title") }}</strong
-        ><br />
-        {{ userDataInfo.title }}
+        <strong>{{ $t("label.title") }}</strong>
+        <br />
+        {{ resource.title }}
       </a-list-item>
       <a-list-item>
-        <strong>{{ $t("label.email") }}</strong
-        ><br />
-        {{ userDataInfo.mail }}
+        <strong>{{ $t("label.department") }}</strong>
+        <br />
+        {{ resource.department }}
+      </a-list-item>
+      <a-list-item>
+        <strong>{{ $t("label.email") }}</strong>
+        <br />
+        {{ resource.mail }}
       </a-list-item>
       <a-list-item>
         <strong>{{ $t("label.isAdmin") }}</strong
         ><br />
-        {{ userDataInfo.isAdmin }}
+        {{ resource.isAdmin }}
       </a-list-item>
       <a-list-item>
-        <strong>{{ $t("label.telephoneNumber") }}</strong
-        ><br />
-        {{ userDataInfo.telephoneNumber }}
+        <strong>{{ $t("label.telephoneNumber") }}</strong>
+        <br />
+        {{ resource.telephoneNumber }}
       </a-list-item>
       <a-list-item>
-        <strong>{{ $t("label.userPrincipalName") }}</strong
-        ><br />
-        {{ userDataInfo.userPrincipalName }}
+        <strong>{{ $t("label.userPrincipalName") }}</strong>
+        <br />
+        {{ resource.userPrincipalName }}
       </a-list-item>
       <a-list-item>
-        <strong>{{ $t("label.distinguishedName") }}</strong
-        ><br />
-        {{ userDataInfo.distinguishedName }}
+        <strong>{{ $t("label.distinguishedName") }}</strong>
+        <br />
+        {{ resource.distinguishedName }}
       </a-list-item>
     </a-list>
     <a-list v-if="actionFrom === 'GroupPolicyDetail'" item-layout="horizontal">
       <a-list-item>
         <strong>{{ $t("label.account") }}</strong
         ><br />
-        {{ userDataInfo.username }}
+        {{ resource.username }}
       </a-list-item>
     </a-list>
   </a-spin>
 </template>
 
 <script>
-import { defineComponent, reactive, ref } from "vue";
-import { worksApi } from "@/api/index";
-import { message } from "ant-design-vue";
+import { defineComponent, ref } from "vue";
 
 export default defineComponent({
   name: "DetailContent",
@@ -121,67 +126,30 @@ export default defineComponent({
       required: true,
       default: null,
     },
+    resource: {
+      type: Object,
+      required: true,
+      default: null,
+    },
   },
-  setup(props) {
-     const state = reactive({
-      actionFrom: ref(props.actionFrom),
-    });
-    return {
-      state,
-    };
-  },
+  setup(props) {},
   data() {
     return {
       spinning: ref(true),
-      vmDbDataInfo: ref([]),
-      vmMoldDataInfo: ref([]),
-      userDataInfo: ref([]),
     };
   },
   created() {
-    this.reflesh();
+    this.fetchRefresh();
   },
   methods: {
-    reflesh() {
+    fetchRefresh() {
       this.fetchData();
       this.spinning = true;
+    },
+    fetchData() {
       setTimeout(() => {
         this.spinning = false;
       }, 500);
-    },
-    fetchData() {
-      // 가상머신 상세조회
-      if (this.state.actionFrom == "VirtualMachineDetail") {
-        worksApi
-        .get("/api/v1/instance/detail/" + this.$route.params.vmUuid)
-        .then((response) => {
-          if (response.status === 200) {
-            this.vmDbDataInfo = response.data.result.instanceDBInfo;
-            this.vmMoldDataInfo =
-              response.data.result.instanceMoldInfo.virtualmachine[0];
-          } else {
-            message.error(this.$t("message.response.data.fail"));
-            //console.log("데이터를 정상적으로 가져오지 못했습니다.");
-          }
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-      }else if (this.state.actionFrom === "UserDetail") {
-        worksApi
-          .get("/api/v1/user/" + this.$route.params.userName)
-          .then((response) => {
-            if (response.status == 200) {
-              this.userDataInfo = response.data.result;
-            } else {
-              message.error(this.$t("message.response.data.fail"));
-              //console.log("데이터를 정상적으로 가져오지 못했습니다.");
-            }
-          })
-          .catch(function (error) {
-            console.log(error);
-          });
-      }
     },
   },
 });

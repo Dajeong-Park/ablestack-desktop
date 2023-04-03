@@ -1,46 +1,42 @@
 <template>
-  <ASpace id="content-space" direction="horizontal">
-    <ARow id="content-row" style="min-height: 400px">
-      <ACol :span="8" style="background: #f0f2f5; padding-right: 8px">
+  <a-space id="content-space" direction="horizontal">
+    <a-row id="content-row" style="min-height: 400px">
+      <a-col :span="6" style="background: #f0f2f5; padding-right: 8px">
         <!-- 왼쪽 detail 창 -->
-        <ACard bordered style="min-height: 300px">
-          <VirtualMachineInfoCard 
-            ref="listRefleshCall1"
-          />
-        </ACard>
-      </ACol>
+        <a-card bordered style="min-height: 300px">
+          <VirtualMachineInfoCard ref="listRefreshCall1" :resource="resource" />
+        </a-card>
+      </a-col>
 
-      <ACol :span="16" style="background: #f0f2f5; padding-left: 8px">
+      <a-col :span="18" style="background: #f0f2f5; padding-left: 8px">
         <!-- 오른쪽 tab 창 -->
-        <ACard bordered>
-          <VirtualMachineTab 
-            ref="listRefleshCall2"
-          />
-        </ACard>
-      </ACol>
-    </ARow>
-  </ASpace>
+        <a-card bordered>
+          <VirtualMachineTab ref="listRefreshCall2" :resource="resource" />
+        </a-card>
+      </a-col>
+    </a-row>
+  </a-space>
 </template>
 
 <script>
-// import TabbedContent from "@/components/TabbedContent";
-import VirtualMachineTab from "./VirtualMachineTab.vue";
 import { defineComponent, ref } from "vue";
 import VirtualMachineInfoCard from "./VirtualMachineInfoCard.vue";
+import VirtualMachineTab from "./VirtualMachineTab.vue";
 
 export default defineComponent({
   components: { VirtualMachineTab, VirtualMachineInfoCard },
   props: {
+    resource: {
+      type: Object,
+      required: true,
+      default: null,
+    },
   },
-  setup() {
-    return {
-      actionFrom: ref("VirtualMachineDetail"),
-    };
-  },
+  setup() {},
   methods: {
-    reflesh() {
-      this.$refs.listRefleshCall1.reflesh();
-      this.$refs.listRefleshCall2.reflesh();
+    fetchRefresh() {
+      this.$refs.listRefreshCall1.fetchRefresh();
+      this.$refs.listRefreshCall2.fetchRefresh();
     },
   },
 });
